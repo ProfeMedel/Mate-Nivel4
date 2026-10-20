@@ -422,7 +422,7 @@
                 return {
                     category: "problems",
                     topic: "Resolución de Problemas (Dinámico)",
-                    question: `Heidí juntó $${val1} en su alcancía y su abuelo Pedro le regaló $${val2}. ¿Cuánto dinero tiene en total?`,
+                    question: `Heidí juntó $${val1} en su alcancía y su amigo Pedro le regaló $${val2}. ¿Cuánto dinero tiene en total?`,
                     type: "problem-desc",
                     correct: ans,
                     options: generateDistractors(ans, 'near')
