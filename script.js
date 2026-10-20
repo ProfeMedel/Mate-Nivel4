@@ -289,7 +289,7 @@
             {
                 category: "problems",
                 topic: "Almacén de Barrio",
-                question: "En el almacén de Don Pedro, Sofía compró un jugo por $450 y una galleta por $320. ¿Cuánto dinero gastó en total?",
+                question: "En el almacén del tío Felipe, Sofía compró un jugo por $450 y una galleta por $320. ¿Cuánto dinero gastó en total?",
                 type: "problem-desc",
                 correct: 770,
                 options: [770, 750, 870, 670, 790]
