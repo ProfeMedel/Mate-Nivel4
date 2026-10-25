@@ -38,7 +38,7 @@ const fixedQuestions = [
   {category:"mult",topic:"Multiplicación",question:"¿Cuánto es 7 × 8?",type:"calc",correct:56},
   {category:"patterns",topic:"Patrón creciente",question:"¿Qué número falta? 150, 200, 250, ___, 350",type:"calc",correct:300},
   {category:"division",topic:"Reparto equitativo",question:"Reparte 12 galletas entre 3 niños por igual. ¿Cuántas recibe cada uno?",type:"division",total:12,groups:3,correct:4},
-  {category:"division",topic:"División básica",question:"¿Cuánto es 15 ÷ 5?",type:"calc",correct:3},
+  {category:"division",topic:"División básica",question:"¿Cuánto es 15 / 5?",type:"calc",correct:3},
   {category:"clock",topic:"Hora exacta",question:"¿Qué hora indica el reloj?",type:"clock",hours:3,minutes:0,correct:"03:00",isStringVal:true},
   {category:"clock",topic:"Media hora",question:"¿Qué hora indica el reloj?",type:"clock",hours:7,minutes:30,correct:"07:30",isStringVal:true},
   {category:"clock",topic:"Cuarto de hora",question:"¿Qué hora indica el reloj?",type:"clock",hours:10,minutes:15,correct:"10:15",isStringVal:true},
@@ -118,11 +118,11 @@ function makeDynamicQuestion(category) {
   if (cat === "division") {
     const groups = Math.floor(Math.random()*8)+2, each = Math.floor(Math.random()*9)+2;
     const total = groups*each;
-    return {category:cat,topic:"División exacta",question:`Se reparten ${total} objetos en ${groups} grupos iguales. ¿Cuántos van en cada grupo?`,type:"division",total,groups,correct:each,options:makeOptions(each,"small")};
+    return {category:cat,topic:"División exacta",question:`¿Cuánto es ${total} / ${groups}?`,type:"calc",correct:each,options:makeOptions(each,"small")};
   }
   if (cat === "clock") {
     const hours = Math.floor(Math.random()*12)+1;
-    const minutes = Math.floor(Math.random()*12)*5; // 0, 5, 10, 15, ..., 55
+    const minutes = Math.floor(Math.random()*12)*5;
     const correct = `${String(hours).padStart(2,"0")}:${String(minutes).padStart(2,"0")}`;
     const phrasing = Math.floor(Math.random()*3);
     let qText = `¿Qué hora indica el reloj análogo?`;
@@ -167,24 +167,60 @@ function buildQuestionPool(category, count) {
   while (pool.length < count && attempts < maxAttempts) {
     attempts++;
     const q = prepareQuestion(makeDynamicQuestion(category));
+    // Validamos clave única basada en la pregunta base sin sufijos
     if (!seen.has(q.question)) {
       seen.add(q.question);
       pool.push(q);
     }
   }
 
-  let variant = 1;
+  // Si aún faltan preguntas para completar el total, generamos nuevas variaciones lógicas sin agregar textos entre paréntesis
   while (pool.length < count) {
     const q = prepareQuestion(makeDynamicQuestion(category));
-    q.question = `${q.question} (${variant})`;
     if (!seen.has(q.question)) {
       seen.add(q.question);
       pool.push(q);
+    } else {
+      // Si la pregunta exacta ya existe, creamos una variación numérica limpia para el reloj u otras categorías
+      if (q.type === "clock") {
+        q.hours = (q.hours % 12) + 1;
+        q.correct = `${String(q.hours).padStart(2,"0")}:${String(q.minutes).padStart(2,"0")}`;
+        q.options = makeOptions(q.correct);
+      } else if (typeof q.correct === "number") {
+        q.correct += 5;
+        q.options = makeOptions(q.correct);
+      }
+      if (!seen.has(q.question + "_" + q.correct)) {
+        seen.add(q.question + "_" + q.correct);
+        pool.push(q);
+      }
     }
-    variant++;
   }
 
   return shuffle(pool).slice(0, count);
+}
+
+function formatTextForSpeech(text) {
+  if (!text) return "";
+  return text
+    .replace(/\//g, " dividido en ")
+    .replace(/÷/g, " dividido en ")
+    .replace(/×/g, " por ")
+    .replace(/\*/g, " por ")
+    .replace(/\+/g, " más ")
+    .replace(/-/g, " menos ");
+}
+
+function speakText(textToSpeak) {
+  if (!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(formatTextForSpeech(textToSpeak));
+  utterance.lang = "es-CL";
+  utterance.rate = 0.85;
+  utterance.pitch = 1.05;
+  
+  window.speechSynthesis.speak(utterance);
 }
 
 function startRound(category, resetScore = false) {
@@ -357,10 +393,7 @@ $("play-again").addEventListener("click", () => startRound(currentCategory, fals
 $("restart-button").addEventListener("click", () => startRound(currentCategory, false));
 
 $("btn-speak").addEventListener("click", () => {
-  if (!("speechSynthesis" in window) || !currentQuestion) return;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(currentQuestion.question);
-  utterance.lang = "es-CL";
-  utterance.rate = 0.85;
-  window.speechSynthesis.speak(utterance);
+  if (!currentQuestion) return;
+  const textToRead = `${currentQuestion.topic}. ${currentQuestion.question}`;
+  speakText(textToRead);
 });
